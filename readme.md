@@ -60,7 +60,7 @@ Face_Expression_detection/
 ```
 📝**Notes**
 
--  ⚠️ TensorFlow and OpenCV may show some informational warnings during runtime. These do not affect the     program functionality
+-  ⚠️ TensorFlow and OpenCV may show some informational warnings during runtime. These do not affect the        program functionality
 -  If using custom models, place them in the model/ folder
 -  The dataset/ folder is optional and can be used to test the program with images
 
