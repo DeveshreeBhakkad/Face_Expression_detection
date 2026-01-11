@@ -1,6 +1,21 @@
-numpy
-opencv-python
-tensorflow
-tf-keras
-deepface
-retina-face
+# Core language
+python>=3.10,<3.12
+
+# Computer Vision
+opencv-python==4.9.0.80
+
+# Deep Learning backend
+tensorflow==2.12.0
+
+# Emotion recognition framework
+deepface==0.0.79
+
+# Face detection dependency (used internally by DeepFace)
+retina-face==0.0.13
+
+# Numerical computing (TensorFlow compatible)
+numpy==1.23.5
+
+# Protocol buffers (TensorFlow compatibility)
+protobuf==3.20.3
+
