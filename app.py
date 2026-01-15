@@ -1,7 +1,7 @@
 
 # ============================================================
-# Real-Time Emotion Analytics Dashboard
-# Phase 2 UI – Product-Style Layout
+# Real-Time Face Emotion Analytics
+# Phase 2 – FINAL Website-Style Layout
 # ============================================================
 
 import cv2
@@ -9,17 +9,14 @@ import streamlit as st
 from deepface import DeepFace
 from collections import deque, Counter
 import pandas as pd
-import time
 
 # ---------------- PAGE CONFIG ----------------
-
 st.set_page_config(
-    page_title="Real-Time Emotion Analytics",
+    page_title="Real-Time Face Emotion Analytics",
     layout="wide"
 )
 
 # ---------------- CUSTOM CSS ----------------
-
 st.markdown("""
 <style>
 body {
@@ -27,35 +24,56 @@ body {
     color: #eaeaea;
 }
 
-/* Header */
-.hero {
+/* ===== TOP BAR ===== */
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 72px;
+    background-color: #0e1117;
+    display: flex;
+    align-items: center;
+    z-index: 1000;
+    border-bottom: 1px solid #222;
+    padding: 0 24px;
+}
+
+/* Left controls */
+.top-left {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Center title */
+.top-center {
+    flex: 1;
     text-align: center;
-    margin-top: 20px;
-    margin-bottom: 20px;
 }
-.hero-title {
-    font-size: 36px;
+.top-title {
+    font-size: 28px;
     font-weight: 700;
+    line-height: 1.1;
 }
-.hero-subtitle {
-    font-size: 14px;
+.top-subtitle {
+    font-size: 12px;
     color: #9aa0a6;
-    margin-top: 6px;
 }
 
 /* Buttons */
-.control-bar {
-    display: flex;
-    justify-content: center;
-    gap: 14px;
-    margin-bottom: 18px;
-}
-button {
-    font-size: 13px !important;
+.top-right button {
     padding: 6px 14px !important;
+    font-size: 13px !important;
+    border-radius: 6px !important;
 }
 
-/* Cards */
+/* ===== SPACER (push content below fixed bar) ===== */
+.spacer {
+    height: 80px;
+}
+
+/* ===== CARDS ===== */
 .card {
     background-color: #161b22;
     padding: 14px;
@@ -63,7 +81,7 @@ button {
     margin-bottom: 14px;
 }
 
-/* Metrics */
+/* ===== METRICS ===== */
 .metric-label {
     font-size: 15px;
     font-weight: 600;
@@ -73,25 +91,37 @@ button {
     font-weight: 700;
 }
 
-/* Progress bar */
+/* ===== PROGRESS BAR ===== */
 .progress-bg {
     width: 100%;
-    height: 8px;
+    height: 10px;
     background-color: #ffffff;
     border-radius: 6px;
+    overflow: hidden;
     margin-top: 6px;
 }
 .progress-fill {
     height: 100%;
-    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #ffffff;
+    text-align: right;
+    padding-right: 6px;
+    line-height: 10px;
 }
-
-/* Colors */
 .green { background-color: #2ea043; }
 .blue { background-color: #1f6feb; }
 .orange { background-color: #d29922; }
 
-/* Footer */
+/* ===== SESSION SECTION ===== */
+.session-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 32px;
+    margin-bottom: 10px;
+}
+
+/* ===== FOOTER ===== */
 .footer {
     position: fixed;
     bottom: 0;
@@ -101,23 +131,13 @@ button {
     text-align: center;
     font-size: 12px;
     color: #9aa0a6;
-    padding: 8px;
+    padding: 6px;
     border-top: 1px solid #222;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- HEADER ----------------
-
-st.markdown("""
-<div class="hero">
-    <div class="hero-title">Real-Time Face Emotion Analytics</div>
-    <div class="hero-subtitle">📊 Live facial emotion recognition with session insights</div>
-</div>
-""", unsafe_allow_html=True)
-
 # ---------------- SESSION STATE ----------------
-
 if "camera_running" not in st.session_state:
     st.session_state.camera_running = False
 if "emotion_history" not in st.session_state:
@@ -127,23 +147,31 @@ if "session_counts" not in st.session_state:
 if "frame_count" not in st.session_state:
     st.session_state.frame_count = 0
 
-# ---------------- CONTROLS ----------------
+# ---------------- TOP BAR ----------------
+st.markdown("<div class='top-bar'>", unsafe_allow_html=True)
 
-st.markdown("<div class='control-bar'>", unsafe_allow_html=True)
-col_stop, col_start = st.columns(2)
+left, center, right = st.columns([1, 4, 1])
 
-with col_stop:
+with left:
+    if st.button("🟢 Start"):
+        st.session_state.camera_running = True
     if st.button("🔴 Stop"):
         st.session_state.camera_running = False
 
-with col_start:
-    if st.button("🟢 Start"):
-        st.session_state.camera_running = True
+with center:
+    st.markdown("""
+    <div class="top-center">
+        <div class="top-title">Real-Time Face Emotion Analytics</div>
+        <div class="top-subtitle">📊 Live facial emotion recognition with session insights</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ---------------- FACE DETECTOR ----------------
+# Spacer so content starts just below top bar
+st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
 
+# ---------------- FACE DETECTOR ----------------
 face_cascade = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
@@ -167,40 +195,35 @@ def metric_card(label, value, percent, color):
         <div class="metric-label">{label}</div>
         <div class="metric-value">{value}</div>
         <div class="progress-bg">
-            <div class="progress-fill {color}" style="width:{percent}%"></div>
+            <div class="progress-fill {color}" style="width:{percent}%;">
+                {int(percent)}%
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-# ---------------- MAIN LAYOUT ----------------
+# ---------------- MAIN DASHBOARD ----------------
+left_col, right_col = st.columns([1, 2], gap="large")
 
-left, right = st.columns([1, 2], gap="large")
-
-# LEFT PANEL (Metrics)
-with left:
+with left_col:
     faces = sum(st.session_state.session_counts.values())
     frames = st.session_state.frame_count
     dominant = (
         st.session_state.session_counts.most_common(1)[0][0]
         if st.session_state.session_counts else "N/A"
     )
-
     max_ref = max(faces, frames, 1)
 
-    metric_card("Faces Analyzed", faces, min((faces/max_ref)*100, 100), "green")
-    metric_card("Frames Processed", frames, min((frames/max_ref)*100, 100), "blue")
+    metric_card("Faces Analyzed", faces, (faces/max_ref)*100, "green")
+    metric_card("Frames Processed", frames, (frames/max_ref)*100, "blue")
     metric_card("Overall Mood", dominant.capitalize(), 100, "orange")
 
-# RIGHT PANEL (Video + Chart)
-with right:
+with right_col:
     video_box = st.empty()
-    chart_box = st.empty()
 
 # ---------------- CAMERA LOOP ----------------
-
 if st.session_state.camera_running:
     cap = cv2.VideoCapture(0)
-
     while cap.isOpened() and st.session_state.camera_running:
         ret, frame = cap.read()
         if not ret:
@@ -213,6 +236,7 @@ if st.session_state.camera_running:
         for (x, y, w, h) in faces:
             face_img = frame[y:y+h, x:x+w]
             emotion = analyze_emotion(face_img)
+
             st.session_state.emotion_history.append(emotion)
             stable = Counter(st.session_state.emotion_history).most_common(1)[0][0]
             st.session_state.session_counts[stable] += 1
@@ -223,21 +247,23 @@ if st.session_state.camera_running:
 
         video_box.image(frame, channels="BGR")
 
-        if st.session_state.session_counts:
-            df = pd.DataFrame.from_dict(
-                st.session_state.session_counts,
-                orient="index",
-                columns=["Count"]
-            )
-            chart_box.bar_chart(df)
-
     cap.release()
 
-# ---------------- FOOTER ----------------
+# ---------------- SESSION SUMMARY ----------------
+st.markdown("<div class='session-title'>📈 Session Summary</div>", unsafe_allow_html=True)
 
+if st.session_state.session_counts:
+    df = pd.DataFrame.from_dict(
+        st.session_state.session_counts,
+        orient="index",
+        columns=["Count"]
+    )
+    st.bar_chart(df)
+
+# ---------------- FOOTER ----------------
 st.markdown("""
 <div class="footer">
-⚠️ Emotion recognition is probabilistic and may vary due to lighting,
-camera quality, facial angle, and individual differences.
+⚠️ Emotion recognition is probabilistic and may vary due to lighting, camera quality,
+facial angle, and individual differences.
 </div>
 """, unsafe_allow_html=True)
